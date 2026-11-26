@@ -251,13 +251,27 @@ void TreeExecutionServer::execute(
         goal_handle->publish_feedback(feedback);
       }
 
+      // ---- LOCAL PATCH (lgw, 2026-11-18): 截止时间不许累加 ----
+      //
+      // 原代码是 `loop_deadline += period`，会在 Tree::sleep() 被提前打断时
+      // 无界累积，最终把整棵树冻住：
+      //   * Tree::sleep() 是可打断的（emitWakeUpSignal），bt_ros2 的 action
+      //     节点在 feedback / result 回调里就会唤醒它；
+      //   * 每被提前打断一次，账上就多记 ~period 的"欠账"；
+      //   * 动作结束后没有唤醒信号了，下一轮就把攒下的欠账一次性睡掉 ——
+      //     期间不 tick、不检查 cancel，表现为树假死、Ctrl-C 阻塞、下一个
+      //     goal 卡在 handle_accepted() 的 join() 上。
+      // 修法: 每轮最多睡一个 period，并且把 deadline 重新锚定到"现在"。
+      // 2026-11-20: bt_ros2_ws 这份源码是独立拷贝(不是 go2_bt_ws 的链接),
+      // 必须在这里也打一次，否则 bt_runner 链接的是未打补丁的库。
       const auto now = std::chrono::steady_clock::now();
-      if(now < loop_deadline)
+      const auto remaining = loop_deadline - now;
+      if(remaining > std::chrono::steady_clock::duration::zero())
       {
-        p_->tree.sleep(std::chrono::duration_cast<std::chrono::system_clock::duration>(
-            loop_deadline - now));
+        const auto capped = (remaining < period) ? remaining : period;
+        p_->tree.sleep(std::chrono::duration_cast<std::chrono::system_clock::duration>(capped));
       }
-      loop_deadline += period;
+      loop_deadline = std::chrono::steady_clock::now() + period;
     }
   }
   catch(const std::exception& ex)

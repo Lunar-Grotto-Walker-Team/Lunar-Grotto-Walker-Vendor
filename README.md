@@ -36,16 +36,25 @@ Lunar-Grotto-Walker-Vendor/
 
 ## 收录清单
 
-> 状态：`待导入` / `已导入` / `已修改`
+> 状态：`已导入`（与上游一致）/ `已修改`（有本地改动，见该目录 `UPSTREAM.md`）
 
-| 子目录 | 上游仓库 | 版本 / commit | 状态 |
+| 子目录 | 上游仓库 | 版本 / 上游 commit | 状态 |
 |---|---|---|---|
-| `src/livox_ros_driver2` | https://github.com/Livox-SDK/livox_ros_driver2 | — | 待导入 |
-| `src/Livox-SDK2` | https://github.com/Livox-SDK/Livox-SDK2 | — | 待导入 |
-| `src/realsense-ros` | https://github.com/IntelRealSense/realsense-ros | — | 待导入 |
-| `src/librealsense` | https://github.com/IntelRealSense/librealsense | — | 待导入 |
-| `src/unitree_ros2` | https://github.com/unitreerobotics/unitree_ros2 | — | 待导入 |
-| `src/BehaviorTree.ROS2` | https://github.com/BehaviorTree/BehaviorTree.ROS2 | — | 待导入 |
+| `src/livox_ros_driver2` | [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) | `master` @ `2144554`（CHANGELOG 1.2.8） | **已修改** — 现场 IP、两个 baselink launch |
+| `src/Livox-SDK2` | [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2) | `master` @ `c0796f0`（v1.5.2） | 已导入 |
+| `src/realsense-ros` | [IntelRealSense/realsense-ros](https://github.com/IntelRealSense/realsense-ros) | tag `4.58.3` @ `60c8509` | 已导入 |
+| `src/librealsense` | [IntelRealSense/librealsense](https://github.com/IntelRealSense/librealsense) | tag `v2.58.3` @ `dfd6aa9` | 已导入 |
+| `src/unitree_ros2` | [unitreerobotics/unitree_ros2](https://github.com/unitreerobotics/unitree_ros2) | tag `v0.3.0` @ `12c080c` | **已修改** — `setup.sh` 适配本机 |
+| `src/BehaviorTree.ROS2` | [BehaviorTree/BehaviorTree.ROS2](https://github.com/BehaviorTree/BehaviorTree.ROS2) | tag `0.3.0` @ `72a3bf5` | **已修改** — tick 循环 deadline 修复 |
+
+### 已知上游注意事项
+
+- **livox_ros_driver2** 编译前必须把 `package_ROS2.xml` 换成 `package.xml`、
+  `launch_ROS2/` 复制成 `launch/`（构建步骤，不入库）。见该目录 `UPSTREAM.md`。
+- **librealsense** 在 Jetson 上编译需要 `gcc-10`/`g++-10`（容器内 GCC 与 CUDA 11.4 冲突）、
+  `-DCMAKE_CUDA_ARCHITECTURES=87`、`-DFORCE_RSUSB_BACKEND=true`。完整参数见 `~/DockerUseNotice.sh`。
+- **unitree_ros2** 的 `setup.sh` 已改成本机 Humble + `eth10` + `AllowMulticast=spdp`，
+  直接可 source；不要改回上游默认值，否则大话题吞吐会掉到 ~12 MB/s。
 
 ---
 
