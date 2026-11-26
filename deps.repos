@@ -29,16 +29,8 @@ repositories:
     url: https://github.com/IntelRealSense/realsense-ros.git
     version: 60c850958d651130fc2cc3d10efb37ff5be93da5   # tag 4.58.3
 
-  kindr:
-    type: git
-    url: https://github.com/ANYbotics/kindr.git
-    version: master                                    # 无 tag；需 cmake -DUSE_CMAKE=true && sudo make install
-
-  kindr_ros:
-    type: git
-    url: https://github.com/SivertHavso/kindr_ros.git
-    version: galactic                                  # elevation_mapping README 指定的分支
-
 # 说明：
-#   grid_map 不在这里 —— 本机直接用 apt 的 ros-humble-grid-map-* (2.0.1)。
+#   kindr / kindr_ros 不在这里 —— 两者都有本地适配（CMake 版本下调、
+#   rosidl DEPENDENCIES 补齐），已入库，见 src/kindr/UPSTREAM.md。
+#   grid_map 也不在这里 —— 本机直接用 apt 的 ros-humble-grid-map-* (2.0.1)。
 #   如需源码版本，用 https://github.com/ANYbotics/grid_map 的 humble 分支。

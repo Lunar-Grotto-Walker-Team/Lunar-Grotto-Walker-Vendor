@@ -6,6 +6,7 @@ ament_auto_find_build_dependencies()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/VectorAtPosition.msg"
+  DEPENDENCIES std_msgs geometry_msgs
   ADD_LINTER_TESTS
 )
 

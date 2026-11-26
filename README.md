@@ -41,11 +41,11 @@ Lunar-Grotto-Walker-Vendor/
     ├── unitree_ros2/          ← 入库（已改）
     ├── BehaviorTree.ROS2/     ← 入库（已改）
     ├── elevation_mapping/     ← 入库（已改）
+    ├── kindr/                 ← 入库（CMake 版本适配）
+    ├── kindr_ros/             ← 入库（rosidl 依赖补齐）
     ├── Livox-SDK2/            ← 导入（不入库）
     ├── librealsense/          ← 导入（不入库）
-    ├── realsense-ros/         ← 导入（不入库）
-    ├── kindr/                 ← 导入（不入库）
-    └── kindr_ros/             ← 导入（不入库）
+    └── realsense-ros/         ← 导入（不入库）
 ```
 
 ## 部署（两阶段）
@@ -83,7 +83,7 @@ colcon build --symlink-install
 
 ## 收录清单
 
-### 入库（改过的上游，4 个）
+### 入库（改过的上游，6 个）
 
 | 子目录 | 上游 | 版本 | 本地改动 |
 |---|---|---|---|
@@ -91,6 +91,8 @@ colcon build --symlink-install
 | `src/unitree_ros2` | [unitreerobotics](https://github.com/unitreerobotics/unitree_ros2) | v0.3.0 @ 12c080c | `setup.sh` 适配 Humble + eth10 |
 | `src/BehaviorTree.ROS2` | [BehaviorTree](https://github.com/BehaviorTree/BehaviorTree.ROS2) | 0.3.0 @ 72a3bf5 | tick 循环 deadline 修复 |
 | `src/elevation_mapping` | [Muhammad540](https://github.com/Muhammad540/elevation_mapping) | main @ 710fffc | 激光径向距离门 + Go2 配置 |
+| `src/kindr` | [ANYbotics](https://github.com/ANYbotics/kindr) | master @ 2446444 | CMake 最低版本 3.28 → 3.16.3 |
+| `src/kindr_ros` | [SivertHavso](https://github.com/SivertHavso/kindr_ros) | galactic @ af5667c | `rosidl` 补 `DEPENDENCIES` |
 
 ### 导入（未改动的上游，见 `deps.repos`）
 
@@ -99,8 +101,6 @@ colcon build --symlink-install
 | `src/Livox-SDK2` | [Livox-SDK](https://github.com/Livox-SDK/Livox-SDK2) | v1.5.2 |
 | `src/librealsense` | [IntelRealSense](https://github.com/IntelRealSense/librealsense) | v2.58.3 |
 | `src/realsense-ros` | [IntelRealSense](https://github.com/IntelRealSense/realsense-ros) | 4.58.3 |
-| `src/kindr` | [ANYbotics](https://github.com/ANYbotics/kindr) | master |
-| `src/kindr_ros` | [SivertHavso](https://github.com/SivertHavso/kindr_ros) | galactic |
 
 `grid_map` 不在此列 —— 本机用 apt 的 `ros-humble-grid-map-*` (2.0.1)。
 

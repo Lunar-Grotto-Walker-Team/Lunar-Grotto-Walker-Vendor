@@ -11,11 +11,11 @@ src/
 ├── unitree_ros2/          ← 入库（setup.sh 适配）
 ├── BehaviorTree.ROS2/     ← 入库（deadline 修复）
 ├── elevation_mapping/     ← 入库（LaserSensorProcessor 径向门 + Go2 配置）
+├── kindr/                 ← 入库（CMake 最低版本 3.28 → 3.16.3）
+├── kindr_ros/             ← 入库（rosidl 补 DEPENDENCIES）
 ├── Livox-SDK2/            ← 导入，不入库
 ├── librealsense/          ← 导入，不入库
-├── realsense-ros/         ← 导入，不入库
-├── kindr/                 ← 导入，不入库
-└── kindr_ros/             ← 导入，不入库
+└── realsense-ros/         ← 导入，不入库
 ```
 
 ---
