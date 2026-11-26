@@ -19,3 +19,6 @@ Thumbs.db
 # ---- Claude Code / agent 工作目录 ----
 .claude/
 docs/superpowers/
+
+# 上游仓库里带的 agent 配置目录（librealsense 等），不入库
+**/.claude/
