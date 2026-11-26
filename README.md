@@ -12,9 +12,13 @@
 
 | 情况 | 处理方式 |
 |---|---|
-| 官方库，**未修改** | 可以收编（便于锁定版本），也可以只在主仓库 `docs/dependencies.md` 里写来源与版本 |
-| 官方库，**做过修改** | **必须**收编到这里，并在该子目录写 `UPSTREAM.md` 说明改了什么 |
+| 官方库，**做过修改** | **入库**（`git subtree`），该子目录必须有 `UPSTREAM.md` |
+| 官方库，**未修改** | **不入库**，写进根目录 `deps.repos` 固定版本，部署时 `vcs import` 拉取 |
 | 团队完全自写 | 放主仓库 `src/`，不放这里 |
+
+**为什么分两级**：`librealsense`（78 MB）+ `realsense-ros`（94 MB）占了工作树的 96%，
+而它们一个字都没改。入库只会让 clone 变慢，对可复现性没有任何帮助——
+`deps.repos` 里钉一个 commit 同样能保证版本一致。
 
 **为什么单独开仓库**：第三方代码有不同的 License（Livox 是 BSD、librealsense 是 Apache-2.0、
 unitree_ros2 是 BSD-3 等），混在主仓库里会让 License 边界和代码归属变得模糊；
@@ -29,23 +33,76 @@ unitree_ros2 是 BSD-3 等），混在主仓库里会让 License 边界和代码
 ```
 Lunar-Grotto-Walker-Vendor/
 ├── README.md
-├── .gitignore
+├── deps.repos            # 大体积/未改动上游的版本固定
+├── .gitignore            # 忽略 deps.repos 导入的目录
 └── src/
-    └── <package_name>/        # 每个子目录 = 一个上游仓库
+    ├── README.md         # 构建顺序 + 每个包的完整指令
+    ├── livox_ros_driver2/     ← 入库（已改）
+    ├── unitree_ros2/          ← 入库（已改）
+    ├── BehaviorTree.ROS2/     ← 入库（已改）
+    ├── elevation_mapping/     ← 入库（已改）
+    ├── Livox-SDK2/            ← 导入（不入库）
+    ├── librealsense/          ← 导入（不入库）
+    ├── realsense-ros/         ← 导入（不入库）
+    ├── kindr/                 ← 导入（不入库）
+    └── kindr_ros/             ← 导入（不入库）
 ```
+
+## 部署（两阶段）
+
+主仓库依赖本仓库，所以**先部署本仓库，再部署主仓库**。
+
+### 第一阶段：本仓库
+
+```bash
+git clone https://github.com/Lunar-Grotto-Walker-Team/Lunar-Grotto-Walker-Vendor.git
+cd Lunar-Grotto-Walker-Vendor
+
+vcs import src < deps.repos      # 拉取大体积/未改动上游
+
+# SDK 层（必须先 make install）
+#   src/Livox-SDK2     → cmake && make install && ldconfig
+#   src/librealsense   → cmake（Jetson 参数）&& make install && ldconfig
+#   src/kindr          → cmake -DUSE_CMAKE=true && make install
+# 完整指令见 src/README.md
+
+colcon build --symlink-install --parallel-workers 4
+source install/setup.bash
+```
+
+### 第二阶段：主仓库
+
+```bash
+git clone https://github.com/Lunar-Grotto-Walker-Team/Lunar-Grotto-Walker.git
+cd Lunar-Grotto-Walker
+vcs import src < deps.repos      # 指向本仓库的固定 commit
+colcon build --symlink-install
+```
+
+两边的 `install/setup.bash` 都要 source，顺序：vendor → 主仓库。
 
 ## 收录清单
 
-> 状态：`待导入` / `已导入` / `已修改`
+### 入库（改过的上游，4 个）
 
-| 子目录 | 上游仓库 | 版本 / commit | 状态 |
+| 子目录 | 上游 | 版本 | 本地改动 |
 |---|---|---|---|
-| `src/livox_ros_driver2` | https://github.com/Livox-SDK/livox_ros_driver2 | — | 待导入 |
-| `src/Livox-SDK2` | https://github.com/Livox-SDK/Livox-SDK2 | — | 待导入 |
-| `src/realsense-ros` | https://github.com/IntelRealSense/realsense-ros | — | 待导入 |
-| `src/librealsense` | https://github.com/IntelRealSense/librealsense | — | 待导入 |
-| `src/unitree_ros2` | https://github.com/unitreerobotics/unitree_ros2 | — | 待导入 |
-| `src/BehaviorTree.ROS2` | https://github.com/BehaviorTree/BehaviorTree.ROS2 | — | 待导入 |
+| `src/livox_ros_driver2` | [Livox-SDK](https://github.com/Livox-SDK/livox_ros_driver2) | master @ 2144554（1.2.8） | 现场 IP、2 个 baselink launch |
+| `src/unitree_ros2` | [unitreerobotics](https://github.com/unitreerobotics/unitree_ros2) | v0.3.0 @ 12c080c | `setup.sh` 适配 Humble + eth10 |
+| `src/BehaviorTree.ROS2` | [BehaviorTree](https://github.com/BehaviorTree/BehaviorTree.ROS2) | 0.3.0 @ 72a3bf5 | tick 循环 deadline 修复 |
+| `src/elevation_mapping` | [Muhammad540](https://github.com/Muhammad540/elevation_mapping) | main @ 710fffc | 激光径向距离门 + Go2 配置 |
+
+### 导入（未改动的上游，见 `deps.repos`）
+
+| 子目录 | 上游 | 版本 |
+|---|---|---|
+| `src/Livox-SDK2` | [Livox-SDK](https://github.com/Livox-SDK/Livox-SDK2) | v1.5.2 |
+| `src/librealsense` | [IntelRealSense](https://github.com/IntelRealSense/librealsense) | v2.58.3 |
+| `src/realsense-ros` | [IntelRealSense](https://github.com/IntelRealSense/realsense-ros) | 4.58.3 |
+| `src/kindr` | [ANYbotics](https://github.com/ANYbotics/kindr) | master |
+| `src/kindr_ros` | [SivertHavso](https://github.com/SivertHavso/kindr_ros) | galactic |
+
+`grid_map` 不在此列 —— 本机用 apt 的 `ros-humble-grid-map-*` (2.0.1)。
 
 ---
 

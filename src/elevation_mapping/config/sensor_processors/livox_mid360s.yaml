@@ -1,0 +1,33 @@
+# Livox Mid-360S (slim) for elevation_mapping
+# Spec: 360° x 59° FOV, range ~70m @10% refl, ~0.5° angular res, ~200k pts/s
+# Purpose: sensor_processor params fed into the laser-type noise model.
+#
+# Field guide:
+#   type           = "laser"             Mid-360S is a time-of-flight lidar
+#   min_radius     = 0.5                 Mid-360S spec min reliable distance
+#   beam_angle     = 0.0033 rad (~1.5°)  Mid-360S horizontal angular resolution
+#   beam_constant  = 0.02                noise constant (sigma ~2cm @ 10m)
+#   cutoff_min_depth / cutoff_max_depth = depth clip window for one frame
+#   normal_factor_* / lateral_factor    = per-ray normal noise model
+#                                         sigma(theta) = a + b*theta + c*theta^2
+#
+# Values were derived from the Livox Mid-360 spec sheet and cross-checked
+# against the existing velodyne_HDL-32E.yaml + realsense_d435.yaml for shape.
+
+/**:
+  ros__parameters:
+    sensor_processor:
+      type: laser
+      min_radius: 0.5
+      beam_angle: 0.0033
+      beam_constant: 0.02
+      cutoff_min_depth: 0.3
+      cutoff_max_depth: 70.0
+      normal_factor_a: 0.0004
+      normal_factor_b: 0.0025
+      normal_factor_c: 0.020
+      normal_factor_d: 0.0
+      normal_factor_e: 1.0
+      lateral_factor: 0.02
+
+

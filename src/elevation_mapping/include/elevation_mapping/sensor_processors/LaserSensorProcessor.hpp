@@ -40,6 +40,17 @@ class LaserSensorProcessor : public SensorProcessorBase {
   bool readParameters(std::string& inputSourceName) override;
 
   /*!
+   * Sensor specific point cloud cleaning.
+   * For laser range sensors, applies a radial distance gate in the sensor
+   * frame using `sensor_processor.cutoff_min_depth` / `cutoff_max_depth`
+   * (Euclidean distance from sensor origin).  Points outside this range are
+   * dropped before the cloud is sent to the map-frame z filter.
+   * @param pointCloud the point cloud to clean (in sensor frame).
+   * @return true if successful.
+   */
+  bool filterPointCloudSensorType(const PointCloudType::Ptr pointCloud) override;
+
+  /*!
    * Computes the elevation map height variances for each point in a point cloud with the
    * sensor model and the robot pose covariance.
    * @param[in] pointCloud the point cloud for which the variances are computed.

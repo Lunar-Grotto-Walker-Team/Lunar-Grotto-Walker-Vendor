@@ -1,0 +1,109 @@
+# Go2 + point_lio (pointlio_ws) robot config for elevation_mapping
+#
+# 上游链: livox_ros_driver2 -> point_lio -> simple_loop_closure (+ map_accumulator)
+# 跟 go2_fastlio.yaml 的差别只有三行(pose topic / base frame / 本注释),其余全部沿用。
+#
+# Inputs:        /cloud_registered     point_lio 去畸变单帧点云
+#                                       (laserMapping.cpp:792,header.frame_id =
+#                                        odom_header_frame_id = "camera_init")
+# Pose topic:    /aft_mapped_to_init   nav_msgs/Odometry (laserMapping.cpp:807-810,
+#                                       odom_only=false 分支)
+#                注意 point_lio **不**发布 /Odometry ——那是 FAST-LIO 的命名。
+# map frame:     map                   identity 静态 TF 到 camera_init,由上游
+#                                       simple_loop_closure_ros2
+#                                       full_stack_simple_lc_mid360s.launch.py:145-160
+#                                       提供(camera_init→map 纯 identity,6 个 0)。
+#                                       不要在这里再加一层,会 TF 冲突。
+#                                       camera_init 本身已被 mid360.yaml 的
+#                                       gravity_align: true 对齐重力系,所以 map 的 z
+#                                       就是真高度,GridMap cell 语义与 go2_fastlio 一致。
+# base frame:    aft_mapped            point_lio 的 odom_child_frame_id 默认值
+#                                       (parameters.cpp:40)。TF 由 point_lio 自己发
+#                                       (laserMapping.cpp:692 tf_br->sendTransform,
+#                                       camera_init → aft_mapped,10 Hz),
+#                                       所以 map→aft_mapped 走 map→camera_init→
+#                                       aft_mapped 两跳能解出来。
+# track_point:   map                   静态锚定,GridMap 不滑动(详见
+#                                       elevation_maps/go2_pointlio.yaml 头注释)
+#
+# 为什么不订阅上游累积的 /aft_pgo_map 或 /global_pgo_map:
+#   两者都是**全图**(SLC 用 PGO 校正位姿拼的关键帧云 / accumulator 的 voxel 去重
+#   结果),1 Hz 重发。elevation_mapping 的融合是逐帧增量更新同一 cell 的
+#   mean/variance,全图重放会让同一个 cell 每秒被积分一次 → variance 被压到
+#   min_variance 下限变伪高置信,一条早期错误地面高度被无限次平均锁死,而且
+#   8 万点全图投影的 CPU 直接吃满。
+#   近场高程图走**单帧增量**是对的:上游累积留给 RViz / PCD 落盘 / 离线分析。
+#
+# 本轮明确不解决: 回环一致性。上游 SLC 的 PGO 校正不会传导到本节点已写入的
+#   GridMap cell(栅格融合不可逆),回环发生后 /elevation_map 会与 /global_pgo_map
+#   整体错开一个回环量。近场任务时长内一般不回环,先不管。
+
+/**:
+  ros__parameters:
+    inputs: ['pointlio_lidar']
+    pointlio_lidar:
+      type: pointcloud
+      topic: /cloud_registered
+      queue_size: 5
+      publish_on_update: true
+      sensor_processor:
+        type: laser
+        # Noise model.  Canonical source of truth — LaserSensorProcessor::readParameters
+        # looks these up at `<inputSourceName>.sensor_processor.<param>` and falls
+        # through to 0.0 if missing, which would make computeVariances() return
+        # sigma=0 (new observation fully overwrites prior cells each frame).
+        #
+        # 数值沿用 go2_fastlio.yaml 未动:同一颗 Mid-360S,只是换上游 LIO。
+        # livox_mid360s.yaml 里那份是 root `sensor_processor.*` 命名空间 —— 代码
+        # 不读(dead config),只当 spec 参考留着。
+        min_radius: 0.3
+        beam_angle: 0.0033
+        beam_constant: 0.02
+        # Radial range gate in sensor frame (Euclidean distance from lidar origin).
+        # Applied in LaserSensorProcessor::filterPointCloudSensorType before the
+        # cloud is sent to the map-frame z filter.  Defaults to wide-open if
+        # omitted (so the parameter is backward compatible).
+        #
+        # cutoff_min_depth = 0.3m   drops near-lidar self-hits / mounting bracket
+        # cutoff_max_depth = 10.0m  drops far-range low-density points beyond
+        #                          useful coverage for the 50m × 50m static
+        #                          GridMap (cuts CPU + variance noise).
+        #                          2026-10-17: 20.0m → 10.0m — Mid-360S 远场点
+        #                          角度分辨率低 + 高程地图方差增长快,留 10m
+        #                          边际收益低于 CPU 成本。**注意**:这意味着
+        #                          50m 窗口里 10m 以外的 cell 永远不会被填,
+        #                          track_point 锚定只是"不删",不等于"有数据"。
+        #                          需要远场覆盖时要同步放宽这里。
+        cutoff_min_depth: 0.3
+        cutoff_max_depth: 10.0
+        # Map-frame z height filter (map,重力对齐系).  Applied in
+        # SensorProcessorBase::removePointsOutsideLimits via PassThrough on
+        # the z field of the TF-transformed cloud, AFTER the radial range
+        # gate above.  Defaults to ±inf (no filter), so omitting these means
+        # every point the lidar sees goes into the map.
+        #
+        # Same dead-config issue as the noise model: elevation_maps yaml has
+        # these at root `sensor_processor/ignore_points_*` (slash, wrong
+        # namespace) which the code never reads — canonical source is here.
+        #
+        # ignore_points_above =  0.5m  drops wall TOP HALF in lava-tube /
+        #                            narrow corridor (1.5m × 1.5m cells
+        #                            see the wall up to 1.1m vertical,
+        #                            but the upper half is the FAR side
+        #                            of the wall which is mostly noise)
+        # ignore_points_below = -0.5m  drops robot leg / mounting hardware
+        #                            shadow returns that survive the
+        #                            sensor-frame radial range gate
+        ignore_points_above: 0.5
+        ignore_points_below: -0.5
+    robot_pose_with_covariance_topic: /aft_mapped_to_init
+    map_frame_id: map
+    robot_base_frame_id: aft_mapped
+    # track_point 锚定到 map 系,坐标 (0, 0, 0) 假设 robot 从 map 原点启动
+    # 工作机制:transform(track_point, map) 每帧是 no-op,
+    #           GridMap::move() 每帧也是 no-op,GridMap 不再滑动 → 已扫过 cell 永不删除
+    # 若 robot 启动时不在 map 原点,需手动改 track_point_x/y 为 robot 启动位姿
+    track_point_frame_id: map
+    track_point_x: 0.0
+    track_point_y: 0.0
+    track_point_z: 0.0

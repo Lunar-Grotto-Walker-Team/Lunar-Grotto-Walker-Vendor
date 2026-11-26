@@ -9,6 +9,7 @@
 #include "elevation_mapping/sensor_processors/LaserSensorProcessor.hpp"
 
 #include <pcl/filters/passthrough.h>
+#include <cmath>
 #include <limits>
 #include <string>
 #include <vector>
@@ -38,14 +39,51 @@ bool LaserSensorProcessor::readParameters(std::string& inputSourceName) {
   nodeHandle_->declare_parameter(inputSourceName + ".sensor_processor.min_radius", 0.0);
   nodeHandle_->declare_parameter(inputSourceName + ".sensor_processor.beam_angle", 0.0);
   nodeHandle_->declare_parameter(inputSourceName + ".sensor_processor.beam_constant", 0.0);
-  
+
+  // Radial range gate (Euclidean distance from sensor origin, in sensor frame).
+  // Defaults match StereoSensorProcessor's behaviour so the parameter is backward
+  // compatible if reused; in practice, set cutoff_max_depth <= lidar max range
+  // and cutoff_min_depth >= min_radius to drop close-range / far-range junk
+  // before the cloud reaches the map-frame z filter.
+  nodeHandle_->declare_parameter(inputSourceName + ".sensor_processor.cutoff_min_depth",
+                                 rclcpp::ParameterValue(0.0));
+  nodeHandle_->declare_parameter(inputSourceName + ".sensor_processor.cutoff_max_depth",
+                                 rclcpp::ParameterValue(std::numeric_limits<double>::max()));
+
   nodeHandle_->get_parameter(inputSourceName + ".sensor_processor.min_radius", sensorParameters_["min_radius"]);
   nodeHandle_->get_parameter(inputSourceName + ".sensor_processor.beam_angle", sensorParameters_["beam_angle"]);
   nodeHandle_->get_parameter(inputSourceName + ".sensor_processor.beam_constant", sensorParameters_["beam_constant"]);
+  nodeHandle_->get_parameter(inputSourceName + ".sensor_processor.cutoff_min_depth", sensorParameters_["cutoff_min_depth"]);
+  nodeHandle_->get_parameter(inputSourceName + ".sensor_processor.cutoff_max_depth", sensorParameters_["cutoff_max_depth"]);
 
   // nodeHandle_.param("sensor_processor/min_radius", sensorParameters_["min_radius"], 0.0);
   // nodeHandle_.param("sensor_processor/beam_angle", sensorParameters_["beam_angle"], 0.0);
   // nodeHandle_.param("sensor_processor/beam_constant", sensorParameters_["beam_constant"], 0.0);
+  return true;
+}
+
+bool LaserSensorProcessor::filterPointCloudSensorType(const PointCloudType::Ptr pointCloud) {
+  const float r_min = static_cast<float>(sensorParameters_.at("cutoff_min_depth"));
+  const float r_max = static_cast<float>(sensorParameters_.at("cutoff_max_depth"));
+  // Skip the filter entirely if the gate is wide open (default 0..inf).
+  if (r_min <= 0.0f && r_max >= 1.0e6f) {
+    return true;
+  }
+
+  PointCloudType tmp;
+  tmp.is_dense = pointCloud->is_dense;
+  tmp.header = pointCloud->header;
+  tmp.points.reserve(pointCloud->size());
+  for (const auto& p : pointCloud->points) {
+    const float r = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+    if (r < r_min || r > r_max) {
+      continue;
+    }
+    tmp.points.push_back(p);
+  }
+  tmp.width = static_cast<uint32_t>(tmp.points.size());
+  tmp.height = 1;
+  pointCloud->swap(tmp);
   return true;
 }
 

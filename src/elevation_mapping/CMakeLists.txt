@@ -33,7 +33,7 @@ find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS system thread)
+find_package(Boost REQUIRED COMPONENTS system thread date_time filesystem iostreams serialization)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Threads REQUIRED)

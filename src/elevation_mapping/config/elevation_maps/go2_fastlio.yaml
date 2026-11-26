@@ -1,0 +1,111 @@
+# Go2 + FAST-LIO elevation map config
+#
+# Mode: 50m × 50m static anchored GridMap (track_point 锚定 map 系,详见 robots/go2_fastlio.yaml)。
+# track_point_frame_id=map 让 GridMap::move() 每帧 no-op,已扫过 cell 不再被 clearRows/clearCols 删除。
+# Grid: 50m / 0.10m = 500 cells/edge = 250K cells per layer; ~10 layers ≈ 10MB。
+#   跟之前的 30m / 0.08m (~6MB) 相比,内存 +78%,CPU +37%,带宽 +140%,都在 Jetson Orin NX 预算内。
+# Coverage: 单房间 / 一条走廊 + 多房间 10-30 min 任务,FAST-LIO 无后端回环 0.5-1m 漂移直接体现在 cell 位置。
+#
+# map_frame_id: map (上游 launch 通过 camera_init → map 静态 TF 提供,map 的 z
+#   已对齐重力)。elevation_mapping TF-transforms /cloud_registered 和 robot pose
+#   从 camera_init 到 map,GridMap cell 存的还是真高度,语义跟之前 gravity_init 一致。
+#
+# 历史:之前 map_frame_id=gravity_init,launch 里硬编 -13° 做一个 camera_init → gravity_init
+# 静态 TF。现在上游 mapping_with_livox.launch.py / mapping.launch.py 改成直接发
+# camera_init → map(RPY 用 LI_init 实测重力反推,角度更准),下游不再需要额外的 gravity_init 层。
+# go2_fastlio 与 go2_fastlivo2 共享同一组 RPY(同一 LI_init 标定结果,gravity 向量
+# 与传感器配置未变)。
+#
+# ignore_points_above = 0.5m: in lava-tube (1.5m × 1.5m) the lidar's upper FOV
+#   (lidar-tilted 13°) sees the wall from 0..1.1m vertical but NOT the ceiling
+#   (ceiling is blocked by walls within 1.35m horizontal range).  Threshold 0.5m
+#   drops wall TOP HALF; downstream slope / normal_vectors_z still detect walls.
+#
+# ignore_points_below = -0.5m: widens the lower gate so deeper-than-floor
+#   returns (e.g. robot leg / mounting hardware shadows that pass the radial
+#   range gate in the sensor frame) are also discarded in the map frame.
+#
+# NOTE: the live `ignore_points_above/below` values live in
+# config/robots/go2_fastlio.yaml under fastlio_lidar.sensor_processor.*
+# (per-input-source namespace required by the C++ lookup at
+# SensorProcessorBase.cpp:61-62).  They were in this file in the
+# per-input-source pre-2026-10-10 days and got moved to the robot yaml
+# along with the noise model.  See CHANGELOG 2026-10-10.
+#
+# Frequency budget:
+#   FAST-LIO input ~10Hz -> min_update_rate 5Hz leaves 50% CPU margin
+#   fused_map_publishing_rate 2Hz for downstream consumers
+#
+# Elevation-mapping README caveats applied here:
+#   - enable_continuous_cleanup == false  (sliding mode; README: mutually exclusive
+#                                          with visibility_cleanup)
+#   - num_callback_threads=2  README flags parameter redeclaration on >1 thread,
+#                              expect a warning on startup; verify V10
+#   - robot_pose_with_covariance_topic is nav_msgs/Odometry from FAST-LIO
+#                                       (laserMapping.cpp:936 publishes
+#                                       /Odometry as nav_msgs/Odometry)
+#                                       (README "Known Issues" entry)
+
+# 50m × 50m 静态 GridMap (track_point 锚定 map 系,详见 robots/go2_fastlio.yaml)
+# 限制:
+#   - robot 必须保持在 track_point ± 25m 范围(world 坐标),否则越界点云被静默 drop
+#   - 重启 elevation_mapping 进程 = GridMap 清空(无 save/load)
+#   - FAST-LIO 无后端回环,10-30 min 累计 0.5-1m 漂移直接体现在 cell 位置偏移
+#   - 默认 track_point = (0, 0),假设 robot 从 map 原点启动;不在原点启动则需手动改 robots/go2_fastlio.yaml 的 track_point_x/y
+#
+elevation_mapping:
+  ros__parameters:
+    # ===== Range (sliding follow) =====
+    length_in_x: 50.0
+    length_in_y: 50.0
+    position_x: 0.0
+    position_y: 0.0
+    resolution: 0.10
+
+    # ===== Frequency =====
+    min_update_rate: 5.0
+    fused_map_publishing_rate: 2.0
+    visibility_cleanup_rate: 2.0
+    scanning_duration: 0.1
+
+    # ===== Multi-threading =====
+    num_callback_threads: 2
+    postprocessor_num_threads: 1
+    postprocessor_pipeline_name: "postprocessor_pipeline"
+
+    # ===== Uncertainty / Mahalanobis fusion =====
+    min_variance: 0.0004
+    max_variance: 0.05
+    mahalanobis_distance_threshold: 3.0
+    # Per-outlier-rejection variance penalty (m^2, used at
+    # ElevationMap.cpp:171).  Upstream default is 9e-6 (sigma=3mm);
+    # the previous 9e-7 was 10x smaller (sigma=0.95mm) and ~400x
+    # smaller than the Mid-360S per-point height variance
+    # (~4e-4 m^2 = sigma=2cm at 10m), so a single rejected
+    # outlier barely registered and the cell never "remembered"
+    # persistent interference (glass reflections, thin-wall
+    # multipath, etc.).  Bumped to 1e-4 m^2 (sigma=1cm) so 4
+    # outlier rejections ≈ 1 typical-observation worth of
+    # variance increase — cell remembers the rejection, but
+    # one spurious rejection doesn't blow the cell's variance
+    # to max.
+    multi_height_noise: 1.0e-4
+
+    # ===== Cleanup =====
+    enable_visibility_cleanup: false
+    enable_continuous_cleanup: false
+
+    # ===== Misc =====
+    time_tolerance: 0.5
+
+    # Motion-based cell uncertainty growth OFF.  RobotMotionMapUpdater
+    # (RobotMotionMapUpdater.cpp:27-28) declares a single scalar
+    # `robot_motion_map_update/covariance_scale` with default 1.0,
+    # which makes cells that fall out of the sensor FOV keep
+    # accumulating variance over time.  For Go2 + FAST-LIO we
+    # want cells that are no longer observed to keep their
+    # uncertainty AT THE MOMENT they were last seen (so
+    # already-fused cells don't get "forgotten" by the Kalman
+    # update and overwritten by noisy new observations when the
+    # robot passes by again).  Set to 0.0 to disable the growth.
+    robot_motion_map_update/covariance_scale: 0.0
