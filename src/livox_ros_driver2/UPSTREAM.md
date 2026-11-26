@@ -53,6 +53,24 @@ colcon build --packages-select livox_ros_driver2 \
 `package.xml` 和 `launch/` 是构建步骤产物，**不纳入版本控制**——
 它们由上面两条命令生成，`subtree pull` 后重新执行即可。
 
+### 为什么不用官方 README 的 `./build.sh humble`
+
+`build.sh` 内部做的就是上面这两步换名（源码第 61–67 行），换名本身没有冲突。
+不能用的原因是它另外三个副作用：
+
+| | `./build.sh humble` | 本文的手动步骤 |
+|---|---|---|
+| 清理 | `rm -rf ../../build/ ../../devel/ ../../install/`——**删掉整个工作区**的产物 | 不删 |
+| 编译范围 | 从 `../../` 跑 `colcon build`，**不带 `--packages-select`**，编整个工作区 | 只编本包 |
+| 收尾 | 编完 `rm -rf launch/` | 保留 |
+
+本仓库 `src/` 下还有 `librealsense`、`realsense-ros`、`unitree_ros2`、`BehaviorTree.ROS2`，
+跑 `build.sh` 会把它们全部拖进一次无参数编译——`librealsense` 缺
+`-DCMAKE_CUDA_ARCHITECTURES=87 -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10
+-DFORCE_RSUSB_BACKEND=true` 等参数，必然失败。
+
+**只有"工作区里只有 livox 一个包"的独立工作区才适合 `build.sh`。**
+
 ## 相关文档
 
 - `l4t/ros2_ws/livox_setup.md` —— Mid-360S 设备识别、网络拓扑、SDK 版本、config key 大小写坑
