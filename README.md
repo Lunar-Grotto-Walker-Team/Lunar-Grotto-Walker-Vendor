@@ -33,8 +33,11 @@ unitree_ros2 是 BSD-3 等），混在主仓库里会让 License 边界和代码
 ```
 Lunar-Grotto-Walker-Vendor/
 ├── README.md
+├── NOTICE                # 第三方组件索引（上游 / 基线 / 许可 / 改动摘要）
 ├── deps.repos            # 大体积/未改动上游的版本固定
 ├── .gitignore            # 忽略 deps.repos 导入的目录
+├── docs/
+│   └── third-party-modes.md   # 每个依赖的引入模式与理由
 └── src/
     ├── README.md         # 构建顺序 + 每个包的完整指令
     ├── livox_ros_driver2/     ← 入库（已改）
@@ -165,8 +168,16 @@ git log --oneline --grep="Squashed 'src/livox_ros_driver2/'"
 ## License
 
 各子目录保留其上游的 `LICENSE`，**本仓库不设统一的顶层 License**——
-一个仓库里混着 BSD / Apache-2.0 / GPL-2.0 的代码，挂单一 License 会误导。
+一个仓库里混着 MIT / BSD-3-Clause / Apache-2.0 的代码，挂单一 License 会误导。
 分发或闭源前请逐个子目录确认。
+
+- [`NOTICE`](NOTICE)：逐个组件列出上游 URL、基线 commit、许可与本地修改摘要。
+- [`docs/third-party-modes.md`](docs/third-party-modes.md)：每个依赖用的是哪种引入模式
+  （A 直接引用 / B 补丁 / C fork+submodule / D 平铺 vendor），以及为什么。
+
+GPL-2.0 的组件**不在本仓库**：`point_lio_ros2` 单独放在
+[`Lunar-Grotto-Walker-PointLIO`](https://github.com/Lunar-Grotto-Walker-Team/Lunar-Grotto-Walker-PointLIO)，
+由主仓库的 `deps.repos` 引用，以免 GPL 混入宽松许可仓库。
 
 ## 与主仓库的关系
 

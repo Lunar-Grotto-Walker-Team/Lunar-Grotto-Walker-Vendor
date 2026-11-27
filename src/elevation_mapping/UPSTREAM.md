@@ -63,6 +63,19 @@
 
 > ⚠️ `subtree pull` 时这些文件会回来，需要再删一次（已在 `src/README.md` 的更新流程里注明）。
 
+### 5. 补回 `LICENSE`（2026-11-27）
+
+上游 `Muhammad540/elevation_mapping` **没有 LICENSE 文件**，只有 `package.xml` 里的
+`<license>BSD</license>` 标签。BSD-3-Clause 第 1 条要求源码再分发必须保留版权声明、
+条件列表和免责声明，仅一个 SPDX 标签不构成「保留」。
+
+本仓库从更上游 `ANYbotics/elevation_mapping` 取回 BSD-3-Clause 原文放入
+`LICENSE`（`Copyright 2019, ANYbotics AG.`），未改动任何字。这属于补回上游
+遗漏的许可文件，不是我们自己新增的条款。
+
+> 如果上游后续自己补上了 LICENSE，`subtree pull` 会以他们的版本为准；
+> 届时核对一下是否仍是同一份 BSD-3 文本。
+
 ## 构建
 
 ```bash
