@@ -44,10 +44,7 @@ cmake .. -DUSE_CMAKE=true
 sudo make install && sudo ldconfig
 ```
 
-**不要让 colcon 编译它**（需要 `-DUSE_CMAKE=true` 且必须 `make install`）：
-
-```bash
-touch src/kindr/COLCON_IGNORE
-```
+**不要让 colcon 编译它**（需要 `-DUSE_CMAKE=true` 且必须 `make install`）。
+本仓库已随源码提供 `COLCON_IGNORE`，clone 下来即生效。
 
 验证：`ls /usr/local/include/kindr`
