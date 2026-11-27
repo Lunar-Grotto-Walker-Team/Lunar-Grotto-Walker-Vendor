@@ -1,6 +1,7 @@
 name:
 - gripper
-position: [0.05]
+position: [0.0]
 velocity: []
-effort: [1.0]
+effort: [2.0]
+
 
