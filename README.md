@@ -72,6 +72,9 @@ vcs import src < deps.repos      # 拉取大体积/未改动上游
 # agx_arm_ros 的 URDF 子模块（约 205 MB）要落到包的子目录里，单独导入：
 vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
 
+# 机械臂 CAN SDK（pip，不随仓库分发；与 agx_arm_ros 基线配套）
+pip install "git+https://github.com/agilexrobotics/pyAgxArm.git"   # 本机验证 1.0.0
+
 # 官方包 librealsense 声明了 build_type=cmake，colcon 会重复编译它
 touch src/librealsense/COLCON_IGNORE
 # （kindr 的 COLCON_IGNORE 已随仓库提供，不用手动加）

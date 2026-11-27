@@ -64,6 +64,12 @@ agx_arm_urdf    https://github.com/agilexrobotics/agx_arm_urdf  f6642ce  MIT
                 （agx_arm_ros 的子模块；导入到
                  src/agx_arm_ros/src/agx_arm_description/，见 deps.agx-arm-urdf.repos）
 
+运行期 Python 依赖（pip，不随本仓库分发）
+----------------------------------------------------------
+
+pyAgxArm   https://github.com/agilexrobotics/pyAgxArm   1.0.0
+           （src/agx_arm_ros 里 agx_arm_ctrl 的 CAN SDK；MIT）
+
 每个入库组件的改动明细见其子目录下的 UPSTREAM.md；
 各组件选用的引入模式见 docs/third-party-modes.md。
 

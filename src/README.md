@@ -166,8 +166,10 @@ source src/unitree_ros2/setup.sh
 # 1) 导入 URDF 子模块（约 205 MB，不入库）
 vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
 
-# 2) Python SDK（agx_arm_ctrl 的运行时依赖，不在本仓库）
-pip install -e /path/to/pyAgxArm     # 或 pip install pyAgxArm
+# 2) Python SDK（agx_arm_ctrl 的运行时依赖，不随本仓库分发）
+#    上游：https://github.com/agilexrobotics/pyAgxArm（本机验证版本 1.0.0）
+pip install "git+https://github.com/agilexrobotics/pyAgxArm.git"
+python3 -c "import pyAgxArm; print(pyAgxArm.__version__)"   # 应输出 1.0.0
 
 # 3) 编译（colcon 会按依赖顺序处理）
 colcon build --symlink-install --packages-select \
