@@ -5,7 +5,7 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | https://github.com/unitreerobotics/unitree_ros2 |
-| 导入版本 | tag `v0.3.0` @ `12c080c` |
+| 导入版本 | 附注 tag `v0.3.0`（tag 对象 `12c080c`，指向 commit `66ae098`） |
 | 导入方式 | `git subtree add --squash` |
 | License | BSD-3-Clause（见 `LICENSE`） |
 

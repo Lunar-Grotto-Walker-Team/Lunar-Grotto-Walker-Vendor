@@ -10,6 +10,12 @@
 // WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// ============================================================================
+// MODIFIED by the Lunar-Grotto-Walker team. See src/BehaviorTree.ROS2/UPSTREAM.md
+// for the change list, the upstream baseline commit, and the reason for each edit.
+//   2026-11-18  execute(): tick loop deadline no longer accumulates (see below).
+// ============================================================================
 
 #ifdef _MSC_VER
 #pragma warning(push)
