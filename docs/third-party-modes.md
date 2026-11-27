@@ -22,6 +22,8 @@
 | `Livox-SDK2` | **A** | vendor `deps.repos` | v1.5.2 | 未改动 |
 | `librealsense` | **A** | vendor `deps.repos` | v2.58.3 | 未改动，78 MB |
 | `realsense-ros` | **A** | vendor `deps.repos` | 4.58.3 | 未改动，94 MB |
+| `agx_arm_ros` | D（subtree 变体） | vendor `src/` | `ros2` @ `b9ad14d` | 4 项适配跨驱动与 MoveIt 配置（park 位姿、topic 硬件后端、TF 前缀、测试采样）；上游发版与固件绑定，subtree 便于整体跟随 |
+| `agx_arm_urdf` | **A**（嵌套导入） | vendor `deps.agx-arm-urdf.repos` | `f6642ce` | 未改动，约 205 MB（meshes）；它是 `agx_arm_ros` 的子模块，必须导入到 `agx_arm_description/` 内，故单列一个 repos 文件 |
 | `point_lio_ros2` | D（独立仓库） | 主仓库 `deps.repos` | 见该仓库 `UPSTREAM.md` | 改动跨 7 组、深度耦合；**GPL-2.0**，必须与主仓库的 BSD-3 代码隔离，故单独成仓库，主仓库用 `deps.repos` 钉 commit（等价于 A 的引用方式） |
 | `simple_loop_closure_ros2` | D | 主仓库 `src/` | 见该包 `UPSTREAM.md` | BSD-3，无许可隔离需求；改动跨 8 组 |
 
@@ -78,7 +80,26 @@ GPL-2.0 §2(a) 还要求**修改过的文件带有说明改动与日期的显著
 
 ---
 
-## 五、维护规则
+## 五、嵌套路径的导入（A 模式的例外）
+
+vcstool 只能把仓库导入到**指定的目标目录**下，因此当一个 A 模式组件必须落在某个包的
+子目录里时（`agx_arm_ros` 的 `agx_arm_urdf` 就是这种情况），不要塞进 `deps.repos`，
+而是**单列一个 repos 文件**，并在部署说明里写清目标目录：
+
+```bash
+vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
+```
+
+判断标准：
+
+- 目标路径在 `src/<name>` → 进 `deps.repos`；
+- 目标路径更深 → 单列 repos 文件 + 对应目录写进 `.gitignore`；
+- 该目录是上游子模块时，导入后必须 `git rm --cached`（subtree 导入会带回 gitlink），
+  且不要在仓库里保留 `.gitmodules`。
+
+---
+
+## 六、维护规则
 
 - 新增第三方依赖时，先按指南 §2 的决策树定模式，再在**本文件**加一行；没写进本文件的依赖视为违规。
 - 每个入库目录必须有 `UPSTREAM.md`（上游 URL、基线 commit、改动清单）。

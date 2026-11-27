@@ -46,12 +46,23 @@ kindr_ros
   许可:   BSD-3-Clause —— 见 src/kindr_ros/LICENSE
   本地修改: rosidl_generate_interfaces 补 DEPENDENCIES
 
+agx_arm_ros
+  来源:   https://github.com/agilexrobotics/agx_arm_ros
+  基线:   ros2 @ b9ad14d（2026-09-04）
+  许可:   MIT —— 见 src/agx_arm_ros/LICENSE
+  本地修改: park 位姿替代全零（j2=0.30/j3=-0.20）、topic 硬件后端
+            （hardware_backend:=fake|topic）、robot_state_publisher 的 frame_prefix、
+            夹爪测试采样值
+
 导入组件（不由本仓库分发，部署时由 deps.repos 从上游拉取）
 ----------------------------------------------------------
 
 Livox-SDK2      https://github.com/Livox-SDK/Livox-SDK2        v1.5.2    MIT
 librealsense    https://github.com/IntelRealSense/librealsense  v2.58.3   Apache-2.0
 realsense-ros   https://github.com/IntelRealSense/realsense-ros 4.58.3    Apache-2.0
+agx_arm_urdf    https://github.com/agilexrobotics/agx_arm_urdf  f6642ce  MIT
+                （agx_arm_ros 的子模块；导入到
+                 src/agx_arm_ros/src/agx_arm_description/，见 deps.agx-arm-urdf.repos）
 
 每个入库组件的改动明细见其子目录下的 UPSTREAM.md；
 各组件选用的引入模式见 docs/third-party-modes.md。

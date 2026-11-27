@@ -38,6 +38,7 @@ Lunar-Grotto-Walker-Vendor/
 ├── README.md
 ├── NOTICE                # 第三方组件索引（上游 / 基线 / 许可 / 改动摘要）
 ├── deps.repos            # 大体积/未改动上游的版本固定
+├── deps.agx-arm-urdf.repos    # 嵌套路径的导入（agx_arm_ros 的 URDF 子模块）
 ├── .gitignore            # 忽略 deps.repos 导入的目录
 ├── docs/
 │   └── third-party-modes.md   # 每个依赖的引入模式与理由
@@ -49,9 +50,11 @@ Lunar-Grotto-Walker-Vendor/
     ├── elevation_mapping/     ← 入库（已改）
     ├── kindr/                 ← 入库（CMake 版本适配）
     ├── kindr_ros/             ← 入库（rosidl 依赖补齐）
+    ├── agx_arm_ros/           ← 入库（Piper 驱动 + MoveIt）
     ├── Livox-SDK2/            ← 导入（不入库）
     ├── librealsense/          ← 导入（不入库）
-    └── realsense-ros/         ← 导入（不入库）
+    ├── realsense-ros/         ← 导入（不入库）
+    └── agx_arm_ros/src/agx_arm_description/agx_arm_urdf/  ← 导入（不入库，嵌套）
 ```
 
 ## 部署（两阶段）
@@ -65,6 +68,9 @@ git clone https://github.com/Lunar-Grotto-Walker-Team/Lunar-Grotto-Walker-Vendor
 cd Lunar-Grotto-Walker-Vendor
 
 vcs import src < deps.repos      # 拉取大体积/未改动上游
+
+# agx_arm_ros 的 URDF 子模块（约 205 MB）要落到包的子目录里，单独导入：
+vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
 
 # 官方包 librealsense 声明了 build_type=cmake，colcon 会重复编译它
 touch src/librealsense/COLCON_IGNORE
@@ -101,7 +107,7 @@ source install/setup.bash
 
 ## 收录清单
 
-### 入库（改过的上游，6 个）
+### 入库（改过的上游，7 个）
 
 | 子目录 | 上游 | 版本 | 本地改动 |
 |---|---|---|---|
@@ -111,6 +117,7 @@ source install/setup.bash
 | `src/elevation_mapping` | [Muhammad540](https://github.com/Muhammad540/elevation_mapping) | main @ 710fffc | 激光径向距离门 + Go2 配置 |
 | `src/kindr` | [ANYbotics](https://github.com/ANYbotics/kindr) | master @ 2446444 | CMake 最低版本 3.28 → 3.16.3 |
 | `src/kindr_ros` | [SivertHavso](https://github.com/SivertHavso/kindr_ros) | galactic @ af5667c | `rosidl` 补 `DEPENDENCIES` |
+| `src/agx_arm_ros` | [agilexrobotics](https://github.com/agilexrobotics/agx_arm_ros) | ros2 @ b9ad14d | park 位姿、topic 硬件后端、TF 前缀、测试采样 |
 
 ### 导入（未改动的上游，见 `deps.repos`）
 
@@ -119,6 +126,7 @@ source install/setup.bash
 | `src/Livox-SDK2` | [Livox-SDK](https://github.com/Livox-SDK/Livox-SDK2) | v1.5.2 |
 | `src/librealsense` | [IntelRealSense](https://github.com/IntelRealSense/librealsense) | v2.58.3 |
 | `src/realsense-ros` | [IntelRealSense](https://github.com/IntelRealSense/realsense-ros) | 4.58.3 |
+| `src/agx_arm_ros/src/agx_arm_description/agx_arm_urdf` | [agilexrobotics](https://github.com/agilexrobotics/agx_arm_urdf) | f6642ce（`deps.agx-arm-urdf.repos`） |
 
 `grid_map` 不在此列 —— 本机用 apt 的 `ros-humble-grid-map-*` (2.0.1)。
 
