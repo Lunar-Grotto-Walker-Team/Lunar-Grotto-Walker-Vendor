@@ -26,7 +26,9 @@ from _moveit_config_builder import (
 )
 
 
-def _build_ros2_controllers_file(arm_type, effector_type, revo2_type, namespace):
+def _build_ros2_controllers_file(
+    arm_type, effector_type, revo2_type, namespace, hardware_backend="fake"
+):
     """Build ros2_controllers config and return path to a temporary YAML file."""
     arm_joints = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
     if arm_type == "nero":
@@ -44,16 +46,50 @@ def _build_ros2_controllers_file(arm_type, effector_type, revo2_type, namespace)
     ns = namespace.strip("/")
     cm_node = f"/{ns}/controller_manager" if ns else "/controller_manager"
 
+    arm_controller_params = {
+        "joints": arm_joints,
+        "command_interfaces": ["position"],
+        "state_interfaces": ["position", "velocity"],
+    }
+    if hardware_backend == "topic":
+        # Real feedback: the state only catches up after the driver's ~0.3 s
+        # follow lag and its velocity reading is noisy. The JTC defaults
+        # (exact goal match, stopped_velocity_tolerance 0.0, goal_time 0.0)
+        # would abort every planned trajectory. The fake backend keeps the
+        # defaults so the previous pipeline behaves exactly as before.
+        # Measured 2026-11-06: the driver follows MoveIt setpoints with a
+        # ~0.3 s lag, so a fast trajectory segment put joint3 0.502 rad behind
+        # -- 2 mrad over the 0.5 rad tolerance -- and the controller aborted a
+        # perfectly fine recovery move. The JTC's position check is not the
+        # right place to police this driver; the servo node's own probe
+        # verifies the real pose after a recovery move.
+        arm_controller_params.update({
+            "allow_nonzero_velocity_at_trajectory_end": True,
+            # Interpolate each new streamed trajectory from the controller's OWN
+            # last command instead of from the measured state. With the real
+            # arm in the loop, every Servo update re-planned from the trailing
+            # pose and the command sagged back towards it between updates: a
+            # 29 Hz sawtooth of 0.05-0.47 deg rms (the mock backend measured
+            # 0.04-0.08 deg). This flag is what restores the mock's smoothness
+            # while the real state stays published for MoveIt, the follow
+            # monitor and the Servo halt checks.
+            "open_loop_control": True,
+            "constraints": {
+                "goal_time": 5.0,
+                "stopped_velocity_tolerance": 0.2,
+                **{
+                    joint: {"trajectory": 1.5, "goal": 0.25}
+                    for joint in arm_joints
+                },
+            },
+        })
+
     config = {
         cm_node: {
             "ros__parameters": {"update_rate": 200, **cm_controllers},
         },
         (f"/{ns}/arm_controller" if ns else "/arm_controller"): {
-            "ros__parameters": {
-                "joints": arm_joints,
-                "command_interfaces": ["position"],
-                "state_interfaces": ["position", "velocity"],
-            },
+            "ros__parameters": arm_controller_params,
         },
     }
 
@@ -127,6 +163,12 @@ def _build_moveit(context):
     revo2_type = LaunchConfiguration("revo2_type").perform(context)
     moveit_config = build_moveit_config(context)
     package_path = moveit_config.package_path
+    hardware_backend = LaunchConfiguration("hardware_backend").perform(context)
+    # With the topic backend the state lives in agx_topic_hardware and the
+    # COMMAND path is the plugin's write(); the JSB must not publish onto the
+    # driver's command topic (its zero initial state would be executed).
+    jsb_topic = "/joint_states" if hardware_backend == "topic" \
+        else LaunchConfiguration("control_topic")
 
     actions = []
 
@@ -192,7 +234,7 @@ def _build_moveit(context):
     )
 
     ros2_controllers_yaml = _build_ros2_controllers_file(
-        arm_type, effector_type, revo2_type, namespace
+        arm_type, effector_type, revo2_type, namespace, hardware_backend
     )
     actions.append(
         Node(
@@ -202,7 +244,7 @@ def _build_moveit(context):
                 moveit_config.robot_description,
                 ros2_controllers_yaml,
             ],
-            remappings=[("joint_states", LaunchConfiguration("control_topic"))],
+            remappings=[("joint_states", jsb_topic)],
         )
     )
 
@@ -255,6 +297,14 @@ def generate_launch_description():
                 "tcp_offset",
                 default_value="[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]",
                 description="TCP offset [x, y, z, rx, ry, rz] in meters/radians.",
+            ),
+            DeclareLaunchArgument(
+                "hardware_backend",
+                default_value="fake",
+                choices=["fake", "topic"],
+                description="ros2_control hardware: fake (mock_components, "
+                "state=command) or topic (agx_topic_hardware, state=real "
+                "feedback, command to the driver).",
             ),
             DeclareLaunchArgument(
                 "follow",

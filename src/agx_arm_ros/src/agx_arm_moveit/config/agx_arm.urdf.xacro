@@ -6,6 +6,7 @@
   <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
   <xacro:arg name="tcp_offset_xyz" default="0 0 0" />
   <xacro:arg name="tcp_offset_rpy" default="0 0 0" />
+  <xacro:arg name="hardware_backend" default="fake" />
 
   <xacro:property name="arm_type" value="$(arg arm_type)" />
   <xacro:property name="flange_link" value="${'link7' if arm_type == 'nero' else 'link6'}" />
@@ -37,6 +38,7 @@
   <xacro:agx_arm_ros2_control
     name="FakeSystem"
     initial_positions_file="$(arg initial_positions_file)"
+    hardware_backend="$(arg hardware_backend)"
     arm_type="$(arg arm_type)"
     effector_type="$(arg effector_type)"
     revo2_type="$(arg revo2_type)"

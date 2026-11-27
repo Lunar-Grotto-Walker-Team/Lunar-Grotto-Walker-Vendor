@@ -1,11 +1,21 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="agx_arm_ros2_control" params="name initial_positions_file arm_type effector_type revo2_type">
+  <xacro:macro name="agx_arm_ros2_control" params="name initial_positions_file arm_type effector_type revo2_type hardware_backend:=fake state_topic:=/feedback/joint_states command_topic:=/control/joint_states">
     <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}" />
 
     <ros2_control name="${name}" type="system">
       <hardware>
-        <plugin>mock_components/GenericSystem</plugin>
+        <!-- hardware_backend: fake (default, mock_components/GenericSystem) or
+             topic (agx_topic_hardware: state from real feedback, command to
+             the driver). Default keeps the previous behaviour. -->
+        <xacro:if value="${hardware_backend == 'topic'}">
+          <plugin>agx_topic_hardware/AgxTopicSystem</plugin>
+          <param name="state_topic">${state_topic}</param>
+          <param name="command_topic">${command_topic}</param>
+        </xacro:if>
+        <xacro:unless value="${hardware_backend == 'topic'}">
+          <plugin>mock_components/GenericSystem</plugin>
+        </xacro:unless>
       </hardware>
 
       <joint name="joint1">
