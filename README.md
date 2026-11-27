@@ -60,6 +60,10 @@ cd Lunar-Grotto-Walker-Vendor
 
 vcs import src < deps.repos      # 拉取大体积/未改动上游
 
+# 官方包 librealsense 声明了 build_type=cmake，colcon 会重复编译它
+touch src/librealsense/COLCON_IGNORE
+# （kindr 的 COLCON_IGNORE 已随仓库提供，不用手动加）
+
 # SDK 层（必须先 make install）
 #   src/Livox-SDK2     → cmake && make install && ldconfig
 #   src/librealsense   → cmake（Jetson 参数）&& make install && ldconfig

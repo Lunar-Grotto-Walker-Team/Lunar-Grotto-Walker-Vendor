@@ -84,6 +84,15 @@ make -j$(nproc) && sudo make install && sudo ldconfig
 
 **验证**：`ls /usr/local/lib/librealsense2.so*`
 
+> `librealsense` 的 `package.xml` 声明了 `<build_type>cmake</build_type>`，
+> `vcs import` 之后 colcon 会把它当普通 CMake 包再编一遍（10 分钟以上，且与
+> 上面 `make install` 的结果冲突）。官方包未做修改，本仓库不携带它的标记文件，
+> 拉取后手动加一个：
+>
+> ```bash
+> touch src/librealsense/COLCON_IGNORE
+> ```
+
 ### 3. kindr
 
 `elevation_mapping` 的依赖，必须用 CMake 原生方式装到系统目录：
@@ -97,13 +106,10 @@ sudo make install && sudo ldconfig
 
 **验证**：`ls /usr/local/include/kindr`
 
-> `kindr` 自带 `package.xml`，colcon 也会尝试编译它。**不要**让 colcon 编——
-> 它需要 `-DUSE_CMAKE=true` 且必须 `make install`。安装完成后加一个
-> `COLCON_IGNORE` 空文件到 `src/kindr/`，避免 colcon 重复构建：
->
-> ```bash
-> touch src/kindr/COLCON_IGNORE
-> ```
+> `kindr` 自带 `package.xml`，colcon 会尝试编译它。**不要**让 colcon 编——
+> 它需要 `-DUSE_CMAKE=true` 且必须 `make install`。
+> 本仓库已在 `src/kindr/COLCON_IGNORE` 里放好标记文件，clone 下来即生效，
+> 不需要手动创建。
 
 ---
 
