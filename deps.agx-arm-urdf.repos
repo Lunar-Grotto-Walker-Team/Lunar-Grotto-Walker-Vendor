@@ -1,0 +1,14 @@
+# agx_arm_ros 自带的 URDF 子模块（未改动，约 205 MB，不入库）
+#
+# 用法（在仓库根目录执行）：
+#   vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
+#
+# 为什么单列一个文件：vcstool 只能把仓库导入到指定的目标目录，而这个仓库必须落在
+# agx_arm_description/ 里面（上游把它声明为该包的子模块）。版本取 b9ad14d 记录的
+# gitlink，与 agx_arm_ros 的基线一一对应。
+
+repositories:
+  agx_arm_urdf:
+    type: git
+    url: https://github.com/agilexrobotics/agx_arm_urdf.git
+    version: f6642ce0d7872c686f29c99e9e10cd23d1d49313   # b9ad14d 的 gitlink

@@ -1,0 +1,91 @@
+# Go2 + FAST-LIO robot config for elevation_mapping
+#
+# Inputs:        /cloud_registered     FAST-LIO dense cloud (camera_init frame)
+# Pose topic:    /Odometry             nav_msgs/Odometry (FAST-LIO's pose output;
+#                                       see laserMapping.cpp:936
+#                                       `pubOdomAftMapped_ =
+#                                          create_publisher<Odometry>("/Odometry", 20)`)
+# map frame:     map                   gravity-aligned world;由上游
+#                                       mapping_with_livox.launch.py 通过
+#                                       camera_init → map 静态 TF 提供
+#                                       (RPY 用 LI_init gravity 向量实测反推)
+# base frame:    body                  FAST-LIO body frame (laserMapping.cpp:631
+#                                       `odomAftMapped.child_frame_id = "body"`)
+# track_point:   map                   static anchored (GridMap 不滑动;详见 elevation_maps L1-9)
+#
+# Why not /robot_state/pose (default in upstream demo):
+#   FAST-LIO publishes /Odometry Odometry, not
+#   PoseWithCovarianceStamped.  Renaming here to match.
+#
+# 历史:早期配置用 gravity_init 帧(下游手动 hard-code -13° pitch TF)。
+# 现在上游 mapping.launch.py / mapping_with_livox.launch.py 已经把
+# camera_init → map(重力对齐)直接做了,下游直接用 map,语义不变。
+
+/**:
+  ros__parameters:
+    inputs: ['fastlio_lidar']
+    fastlio_lidar:
+      type: pointcloud
+      topic: /cloud_registered
+      queue_size: 5
+      publish_on_update: true
+      sensor_processor:
+        type: laser
+        # Noise model.  Canonical source of truth — LaserSensorProcessor::readParameters
+        # looks these up at `<inputSourceName>.sensor_processor.<param>` and falls
+        # through to 0.0 if missing, which would make computeVariances() return
+        # sigma=0 (new observation fully overwrites prior cells each frame).
+        #
+        # livox_mid360s.yaml has the spec values under root `sensor_processor.*`,
+        # which is the WRONG namespace — dead config (loaded but ignored).  Kept
+        # as a sensor-spec reference only; per-platform tuning (incl. min_radius)
+        # lives here.
+        min_radius: 0.3
+        beam_angle: 0.0033
+        beam_constant: 0.02
+        # Radial range gate in sensor frame (Euclidean distance from lidar origin).
+        # Applied in LaserSensorProcessor::filterPointCloudSensorType before the
+        # cloud is sent to the map-frame z filter.  Defaults to wide-open if
+        # omitted (so the parameter is backward compatible).
+        #
+        # cutoff_min_depth = 0.3m   drops near-lidar self-hits / mounting bracket
+        # cutoff_max_depth = 10.0m  drops far-range low-density points beyond
+        #                          useful SLAM coverage for the 50m × 50m static
+        #                          GridMap (cuts CPU + variance noise).
+        #                          2026-10-17: 20.0m → 10.0m — Mid-360S 远场点
+        #                          角度分辨率低 + 高程地图方差增长快,留 10m
+        #                          边际收益低于 CPU 成本;后续做"保留全图"
+        #                          时窗口要扩大,这里同步收紧远场
+        cutoff_min_depth: 0.3
+        cutoff_max_depth: 10.0
+        # Map-frame z height filter (map,重力对齐系).  Applied in
+        # SensorProcessorBase::removePointsOutsideLimits via PassThrough on
+        # the z field of the TF-transformed cloud, AFTER the radial range
+        # gate above.  Defaults to ±inf (no filter), so omitting these means
+        # every point the lidar sees goes into the map.
+        #
+        # Same dead-config issue as the noise model: elevation_maps yaml has
+        # these at root `sensor_processor/ignore_points_*` (slash, wrong
+        # namespace) which the code never reads — canonical source is here.
+        #
+        # ignore_points_above =  0.5m  drops wall TOP HALF in lava-tube /
+        #                            narrow corridor (1.5m × 1.5m cells
+        #                            see the wall up to 1.1m vertical,
+        #                            but the upper half is the FAR side
+        #                            of the wall which is mostly noise)
+        # ignore_points_below = -0.5m  drops robot leg / mounting hardware
+        #                            shadow returns that survive the
+        #                            sensor-frame radial range gate
+        ignore_points_above: 0.5
+        ignore_points_below: -0.5
+    robot_pose_with_covariance_topic: /Odometry
+    map_frame_id: map
+    robot_base_frame_id: body
+    # track_point 锚定到 map 系,坐标 (0, 0, 0) 假设 robot 从 map 原点启动
+    # 工作机制:transform(track_point, map) 每帧是 no-op,
+    #           GridMap::move() 每帧也是 no-op,GridMap 不再滑动 → 已扫过 cell 永不删除
+    # 若 robot 启动时不在 map 原点,需手动改 track_point_x/y 为 robot 启动位姿
+    track_point_frame_id: map
+    track_point_x: 0.0
+    track_point_y: 0.0
+    track_point_z: 0.0

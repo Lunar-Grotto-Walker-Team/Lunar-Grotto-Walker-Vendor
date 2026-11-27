@@ -18,4 +18,13 @@ Thumbs.db
 
 # ---- Claude Code / agent 工作目录 ----
 .claude/
+**/.claude/
 docs/superpowers/
+
+# ---- deps.repos 导入的大体积/未改动上游（不入库）----
+src/Livox-SDK2/
+src/librealsense/
+src/realsense-ros/
+
+# ---- agx_arm_ros 的 URDF 子模块（deps.agx-arm-urdf.repos 导入）----
+src/agx_arm_ros/src/agx_arm_description/agx_arm_urdf/

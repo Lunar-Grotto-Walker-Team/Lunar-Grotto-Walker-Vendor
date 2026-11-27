@@ -1,0 +1,77 @@
+Lunar-Grotto-Walker-Vendor
+==========================
+
+本仓库包含以下第三方组件。每个组件的上游许可证原文保留在其子目录内，
+本文件只做索引，不替代那些许可证。
+
+入库组件（代码随本仓库分发）
+----------------------------
+
+livox_ros_driver2
+  来源:   https://github.com/Livox-SDK/livox_ros_driver2
+  基线:   master @ 2144554（CHANGELOG 1.2.8）
+  许可:   MIT，含 Livox 附加条款 —— 见 src/livox_ros_driver2/LICENSE.txt
+  本地修改: 现场 LiDAR IP 配置、2 个 baselink launch
+
+unitree_ros2
+  来源:   https://github.com/unitreerobotics/unitree_ros2
+  基线:   tag v0.3.0（tag 对象 12c080c，commit 66ae098）
+  许可:   BSD-3-Clause —— 见 src/unitree_ros2/LICENSE
+  本地修改: setup.sh 适配 Humble + eth10，CycloneDDS AllowMulticast=spdp
+
+BehaviorTree.ROS2
+  来源:   https://github.com/BehaviorTree/BehaviorTree.ROS2
+  基线:   0.3.0 @ 72a3bf5
+  许可:   Apache-2.0 —— 见 src/BehaviorTree.ROS2/LICENSE
+  本地修改: tick 循环 deadline 不累加（behaviortree_ros2/src/tree_execution_server.cpp，
+            该文件头部已按 Apache-2.0 §4(b) 标注修改）
+
+elevation_mapping
+  来源:   https://github.com/Muhammad540/elevation_mapping
+          （上游为 ANYbotics/elevation_mapping）
+  基线:   main @ 710fffc
+  许可:   BSD-3-Clause —— 见 src/elevation_mapping/LICENSE
+          （上游 fork 未附 LICENSE 文件，本仓库从 ANYbotics 原始仓库补回原文）
+  本地修改: 激光径向距离门、Go2 的 pointlio/fastlio 全套配置与 launch
+
+kindr
+  来源:   https://github.com/ANYbotics/kindr
+  基线:   master @ 2446444
+  许可:   BSD-3-Clause —— 见 src/kindr/LICENSE
+  本地修改: CMake 最低版本 3.28 → 3.16.3（Ubuntu 22.04 自带 3.22）
+
+kindr_ros
+  来源:   https://github.com/SivertHavso/kindr_ros
+  基线:   galactic @ af5667c
+  许可:   BSD-3-Clause —— 见 src/kindr_ros/LICENSE
+  本地修改: rosidl_generate_interfaces 补 DEPENDENCIES
+
+agx_arm_ros
+  来源:   https://github.com/agilexrobotics/agx_arm_ros
+  基线:   ros2 @ b9ad14d（2026-09-04）
+  许可:   MIT —— 见 src/agx_arm_ros/LICENSE
+  本地修改: park 位姿替代全零（j2=0.30/j3=-0.20）、topic 硬件后端
+            （hardware_backend:=fake|topic）、robot_state_publisher 的 frame_prefix、
+            夹爪测试采样值
+
+导入组件（不由本仓库分发，部署时由 deps.repos 从上游拉取）
+----------------------------------------------------------
+
+Livox-SDK2      https://github.com/Livox-SDK/Livox-SDK2        v1.5.2    MIT
+librealsense    https://github.com/IntelRealSense/librealsense  v2.58.3   Apache-2.0
+realsense-ros   https://github.com/IntelRealSense/realsense-ros 4.58.3    Apache-2.0
+agx_arm_urdf    https://github.com/agilexrobotics/agx_arm_urdf  f6642ce  MIT
+                （agx_arm_ros 的子模块；导入到
+                 src/agx_arm_ros/src/agx_arm_description/，见 deps.agx-arm-urdf.repos）
+
+运行期 Python 依赖（pip，不随本仓库分发）
+----------------------------------------------------------
+
+pyAgxArm   https://github.com/agilexrobotics/pyAgxArm   1.0.0
+           （src/agx_arm_ros 里 agx_arm_ctrl 的 CAN SDK；MIT）
+
+每个入库组件的改动明细见其子目录下的 UPSTREAM.md；
+各组件选用的引入模式见 docs/third-party-modes.md。
+
+本仓库不设统一的顶层 LICENSE：一个仓库里混着 MIT / BSD-3-Clause / Apache-2.0
+的代码，挂单一许可证会误导。分发或闭源前请逐个子目录确认。
