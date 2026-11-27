@@ -13,9 +13,11 @@ src/
 ├── elevation_mapping/     ← 入库（LaserSensorProcessor 径向门 + Go2 配置）
 ├── kindr/                 ← 入库（CMake 最低版本 3.28 → 3.16.3）
 ├── kindr_ros/             ← 入库（rosidl 补 DEPENDENCIES）
+├── agx_arm_ros/           ← 入库（Piper 驱动 + MoveIt：park 位姿 / topic 后端 / TF 前缀）
 ├── Livox-SDK2/            ← 导入，不入库
 ├── librealsense/          ← 导入，不入库
-└── realsense-ros/         ← 导入，不入库
+├── realsense-ros/         ← 导入，不入库
+└── agx_arm_ros/src/agx_arm_description/agx_arm_urdf/   ← 导入，不入库（嵌套路径）
 ```
 
 ---
@@ -34,6 +36,8 @@ src/
 ② ROS 层（colcon build）
    livox_ros_driver2（需先换名）· unitree_ros2 · BehaviorTree.ROS2
    · elevation_mapping · realsense-ros · kindr_ros
+   · agx_arm_msgs → agx_arm_ctrl → agx_arm_description → agx_arm_moveit
+     （需先导入 agx_arm_urdf，见下；agx_arm_ctrl 还需 pip install pyAgxArm）
 ```
 
 ---
@@ -153,6 +157,32 @@ source install/setup.bash
 # CycloneDDS 配置（eth10 + AllowMulticast=spdp）由 unitree_ros2/setup.sh 提供
 source src/unitree_ros2/setup.sh
 ```
+
+---
+
+## agx_arm_ros（Piper 机械臂驱动 + MoveIt）
+
+```bash
+# 1) 导入 URDF 子模块（约 205 MB，不入库）
+vcs import src/agx_arm_ros/src/agx_arm_description < deps.agx-arm-urdf.repos
+
+# 2) Python SDK（agx_arm_ctrl 的运行时依赖，不在本仓库）
+pip install -e /path/to/pyAgxArm     # 或 pip install pyAgxArm
+
+# 3) 编译（colcon 会按依赖顺序处理）
+colcon build --symlink-install --packages-select \
+  agx_arm_msgs agx_arm_ctrl agx_arm_description agx_arm_moveit
+```
+
+注意事项：
+
+- `agx_arm_description/CMakeLists.txt` 会 `install(DIRECTORY agx_arm_urdf ...)`，
+  **没导 URDF 子模块时这个包会构建失败**；
+- `agx_arm_moveit` 依赖 MoveIt 2（`ros-humble-moveit*`）；
+- `hardware_backend:=topic` 需要主仓库自写的 `agx_topic_hardware` 插件；
+- 真机前置：`can_activate.sh can0 1000000`（CAN 1 Mbps）。
+
+改动明细见 `src/agx_arm_ros/UPSTREAM.md`。
 
 ---
 

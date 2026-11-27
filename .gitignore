@@ -25,3 +25,6 @@ docs/superpowers/
 src/Livox-SDK2/
 src/librealsense/
 src/realsense-ros/
+
+# ---- agx_arm_ros 的 URDF 子模块（deps.agx-arm-urdf.repos 导入）----
+src/agx_arm_ros/src/agx_arm_description/agx_arm_urdf/
