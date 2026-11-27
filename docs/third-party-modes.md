@@ -25,6 +25,12 @@
 | `point_lio_ros2` | D（独立仓库） | 主仓库 `deps.repos` | 见该仓库 `UPSTREAM.md` | 改动跨 7 组、深度耦合；**GPL-2.0**，必须与主仓库的 BSD-3 代码隔离，故单独成仓库，主仓库用 `deps.repos` 钉 commit（等价于 A 的引用方式） |
 | `simple_loop_closure_ros2` | D | 主仓库 `src/` | 见该包 `UPSTREAM.md` | BSD-3，无许可隔离需求；改动跨 8 组 |
 
+> **本仓库自身不进主仓库的 `deps.repos`**。它是「环境」而不是「依赖项」：
+> 主仓库单独 clone，`source` 本仓库的 `install/setup.bash` 之后再编译。
+> 所以上表里 6 个入库包与 3 个导入包都没有「消费方 `deps.repos` 里的 pin」，
+> 只有主仓库 `docs/dependencies.md` 顶部一行「本版本验证环境」记录配套版本。
+> `point_lio_ros2` 是例外——它是主仓库的直接依赖，仍用 `deps.repos` 钉 commit。
+
 ---
 
 ## 二、为什么 D 用 `git subtree`，不是直接拷贝
