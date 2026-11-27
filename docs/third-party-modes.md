@@ -24,6 +24,7 @@
 | `realsense-ros` | **A** | vendor `deps.repos` | 4.58.3 | 未改动，94 MB |
 | `agx_arm_ros` | D（subtree 变体） | vendor `src/` | `ros2` @ `b9ad14d` | 4 项适配跨驱动与 MoveIt 配置（park 位姿、topic 硬件后端、TF 前缀、测试采样）；上游发版与固件绑定，subtree 便于整体跟随 |
 | `agx_arm_urdf` | **A**（嵌套导入） | vendor `deps.agx-arm-urdf.repos` | `f6642ce` | 未改动，约 205 MB（meshes）；它是 `agx_arm_ros` 的子模块，必须导入到 `agx_arm_description/` 内，故单列一个 repos 文件 |
+| `pyAgxArm` | **A**（pip 引用） | 宿主机 pip | `1.0.0` | 未修改的 Python SDK，不是 ROS 包；`agx_arm_ctrl` 运行时依赖，安装命令见 `src/README.md` |
 | `point_lio_ros2` | D（独立仓库） | 主仓库 `deps.repos` | 见该仓库 `UPSTREAM.md` | 改动跨 7 组、深度耦合；**GPL-2.0**，必须与主仓库的 BSD-3 代码隔离，故单独成仓库，主仓库用 `deps.repos` 钉 commit（等价于 A 的引用方式） |
 | `simple_loop_closure_ros2` | D | 主仓库 `src/` | 见该包 `UPSTREAM.md` | BSD-3，无许可隔离需求；改动跨 8 组 |
 
