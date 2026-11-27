@@ -1041,10 +1041,16 @@ class AgxArmRosNode(Node):
             elif not self.enable_flag:
                 self.get_logger().warn("Agx_arm is not enabled, cannot move to home position")
             else:
+                # Park pose, not all zeros: joint3's zero IS its upper limit
+                # (URDF: [-2.967, 0]), so homing to 0 pins it on the limit and
+                # the firmware can drop into its protective/limp state.
+                home = [0.0] * self.arm_joint_count
+                home[1] = 0.30
+                home[2] = -0.20
                 if self.is_mit_mode:
-                    self.agx_arm.move_js([0] * self.arm_joint_count)
+                    self.agx_arm.move_js(home)
                 else:
-                    self.agx_arm.move_j([0] * self.arm_joint_count)
+                    self.agx_arm.move_j(home)
                 if self._wait_motion_done():
                     self.get_logger().info("Agx_arm moved to home position successfully")
         except Exception as e:
